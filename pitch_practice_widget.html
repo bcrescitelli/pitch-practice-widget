@@ -1,0 +1,153 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pitch Practice Widget</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #fff;
+      color: #004184;
+      padding: 20px;
+      max-width: 700px;
+      margin: auto;
+    }
+    h2 {
+      color: #0b66c2;
+    }
+    select, button {
+      font-size: 16px;
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    button {
+      background-color: #0b66c2;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #004184;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      background-color: #e8f3ff;
+    }
+    .highlight {
+      color: #c20b0b;
+    }
+  </style>
+</head>
+<body>
+  <h2>🎙️ Practice Your Pitch</h2>
+  <label for="pillar">Select a Pillar:</label>
+  <select id="pillar">
+    <option value="expert">Deliver trusted expert knowledge</option>
+    <option value="personalize">Personalize learning experiences</option>
+    <option value="intelligence">Apply real-time skills intelligence</option>
+    <option value="pathways">Activate career pathways at scale</option>
+  </select>
+
+  <div>
+    <button onclick="startRecording()">🎤 Record</button>
+    <button onclick="stopRecording()">🛑 Stop</button>
+    <button onclick="submitPitch()">✅ Submit</button>
+    <button onclick="reset()">🔄 Start Over</button>
+  </div>
+
+  <div id="transcript"></div>
+  <div class="result" id="feedback" style="display:none;"></div>
+
+  <script>
+    const pitches = {
+      expert: "by connecting to the tools your employees already use and trust to build skills, find opportunities, and grow their careers— LinkedIn.com, Learning, and Hiring.",
+      personalize: "by keeping your talent architecture current with skill suggestions powered by LinkedIn’s Economic Graph so your organization can adapt before gaps appear.",
+      intelligence: "by guiding employee career paths with real-time insights, built-in learning content, and AI-powered coaching so your people build the skills that drive business forward.",
+      pathways: "by connecting employees to internal roles based on their skills, and making internal candidates visible to recruiters, helping you retain and grow critical talent pipelines from within."
+    };
+
+    let recognition;
+    let transcriptText = "";
+
+    if ('webkitSpeechRecognition' in window) {
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = "en-US";
+
+      recognition.onresult = function (event) {
+        transcriptText = event.results[0][0].transcript.toLowerCase();
+        document.getElementById("transcript").innerHTML = "<strong>Your pitch:</strong> " + transcriptText;
+      };
+
+      recognition.onerror = function (event) {
+        alert("Error during recognition: " + event.error);
+      };
+    } else {
+      alert("Speech recognition not supported in this browser.");
+    }
+
+    function startRecording() {
+      transcriptText = "";
+      document.getElementById("transcript").innerHTML = "";
+      document.getElementById("feedback").style.display = "none";
+      recognition.start();
+    }
+
+    function stopRecording() {
+      recognition.stop();
+    }
+
+    function reset() {
+      transcriptText = "";
+      document.getElementById("transcript").innerHTML = "";
+      document.getElementById("feedback").style.display = "none";
+    }
+
+    function submitPitch() {
+      const pillarKey = document.getElementById("pillar").value;
+      const reference = pitches[pillarKey].toLowerCase();
+      const referenceWords = reference.split(/\s+/);
+      const spokenWords = transcriptText.split(/\s+/);
+      let matched = 0;
+
+      referenceWords.forEach(word => {
+        if (spokenWords.includes(word.replace(/[^a-zA-Z]/g, ''))) {
+          matched++;
+        }
+      });
+
+      const score = Math.round((matched / referenceWords.length) * 100);
+      const feedbackEl = document.getElementById("feedback");
+      let feedbackMsg = `<strong>Match Score: ${score}%</strong><br/>`;
+
+      if (score >= 85) {
+        feedbackMsg += "👏 Great job! You covered the key points.";
+      } else if (score >= 70) {
+        feedbackMsg += "👍 You're close. Try including more key phrases.<br/><br/><span class='highlight'>Suggestions:</span><ul>";
+        feedbackMsg += getSuggestions(referenceWords, spokenWords);
+        feedbackMsg += "</ul>";
+      } else {
+        feedbackMsg += "🚧 Needs practice. Focus on clarity and hitting essential ideas.<br/><br/><span class='highlight'>Suggestions:</span><ul>";
+        feedbackMsg += getSuggestions(referenceWords, spokenWords);
+        feedbackMsg += "</ul>";
+      }
+
+      feedbackEl.innerHTML = feedbackMsg;
+      feedbackEl.style.display = "block";
+    }
+
+    function getSuggestions(refWords, spoken) {
+      let missed = refWords.filter(w => !spoken.includes(w.replace(/[^a-zA-Z]/g, '')));
+      let topMissed = [...new Set(missed)].slice(0, 3);
+      return topMissed.map(w => `<li>Include: <strong>${w}</strong></li>`).join('');
+    }
+  </script>
+</body>
+</html>
